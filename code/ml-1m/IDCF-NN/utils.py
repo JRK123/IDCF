@@ -10,20 +10,16 @@ config = yaml.safe_load(open("./datainfo.yaml", 'r'))
 def generate_data(datadir, dataset='ml-1m', split_way='threshold', threshold=50, supp_ratio=None, training_ratio=1):
     n_user = config[dataset]['n_user']
     n_item = config[dataset]['n_item']
-    with open (datadir+dataset+'.pkl','rb') as f:  
+    with open("core_train_test.pkl", 'rb') as f:
         u = pickle.load(f)
         i = pickle.load(f)
         r = pickle.load(f)
-        train_u = pickle.load(f)
-        train_i = pickle.load(f)
-        train_r = pickle.load(f)
-        test_u = pickle.load(f)
-        test_i = pickle.load(f)
-        test_r = pickle.load(f)
+        train_index = pickle.load(f)
+        test_index = pickle.load(f)
 
-    index = [i for i in range(len(u))]
-    random.shuffle(index)
-    train_index, test_index = index[:int(training_ratio*0.9*len(u))], index[int(0.9*len(u)):]
+    # index = [i for i in range(len(u))]
+    # random.shuffle(index)
+    # train_index, test_index = index[:int(training_ratio*0.9*len(u))], index[int(0.9*len(u)):]
 
     train_ui_dic = {}
     train_ur_dic = {}
@@ -40,7 +36,7 @@ def generate_data(datadir, dataset='ml-1m', split_way='threshold', threshold=50,
     for index in train_index:
         train_ui_dic[u[index]].append(i[index])
         train_ur_dic[u[index]].append(r[index])
-
+    
     for index in test_index:
         test_ui_dic[u[index]].append(i[index])
         test_ur_dic[u[index]].append(r[index])
