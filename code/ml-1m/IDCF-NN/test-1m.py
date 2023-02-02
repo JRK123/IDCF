@@ -149,13 +149,14 @@ def test(model, test_set, supp_or_que):
 	return MAE, RMSE, ndcg_sum, num
 
 def load_model_s(model, path):
-	model.load_model(path+'model.pkl')
+	model.load_model(path+'core_model.pkl')
 
 def load_model_q(model, path):
 	if EXTRA:
-		model.load_model(path + 'model-extra.pkl')
+		model.load_model(path + 'core_model-extra.pkl')
 	else:
-		model.load_model(path+'model-inter.pkl')
+		print("CORE IS SELECTED:")
+		model.load_model(path+'core_model-inter.pkl')
 
 if EXTRA:
 	model_q = IRMC_NN_Model(n_user=n_user,
