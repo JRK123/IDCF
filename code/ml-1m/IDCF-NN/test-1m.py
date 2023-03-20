@@ -44,6 +44,7 @@ THRESHOLD = 30
 SUPP_RATIO = 0.8
 TRAINING_RATIO = 1.0
 EXTRA = args.extra
+print("Extra :", EXTRA)
 datadir = '../../../data/'
 n_user = config[DATASET]['n_user']
 n_item = config[DATASET]['n_item']
@@ -112,9 +113,12 @@ def test(model, test_set, supp_or_que):
 	l1_sum, l2_sum, ndcg_sum, num = 0., 0., 0., 0
 	test_size = test_set.size(0)
 	user_score_dict, user_label_dict = {}, {}
+	n = 0
 	for k in user_his_dic.keys():
 		user_score_dict[k] = []
 		user_label_dict[k] = []
+		n += 1
+	print("USER HIS DICT:", n)
 	for i in range(test_size // BATCH_SIZE_TEST + 1):
 		with torch.no_grad():
 			test_set_i = test_set[i*BATCH_SIZE_TEST : (i+1)*BATCH_SIZE_TEST]
@@ -142,21 +146,23 @@ def test(model, test_set, supp_or_que):
 	MAE = l1_sum / test_size
 	RMSE = np.sqrt( l2_sum / test_size )
 	for k in user_score_dict.keys():
+		# print("hello")
+		num = num + 1
 		if len(user_score_dict[k]) <= 1:
 			continue
 		ndcg_sum += ndcg_k(user_score_dict[k], user_label_dict[k], len(user_score_dict[k]))
-		num += 1
+	print("NUM IS:", num)
 	return MAE, RMSE, ndcg_sum, num
 
 def load_model_s(model, path):
-	model.load_model(path+'core_model.pkl')
+	model.load_model(path+'cur_10_support_as_core_support_model.pkl')
 
 def load_model_q(model, path):
 	if EXTRA:
-		model.load_model(path + 'core_model-extra.pkl')
+		model.load_model(path + 'cur_10_support_as_core_support_model-extra.pkl')
 	else:
 		print("CORE IS SELECTED:")
-		model.load_model(path+'core_model-inter.pkl')
+		model.load_model(path+'cur_10_support_as_core_support_model-inter.pkl')
 
 if EXTRA:
 	model_q = IRMC_NN_Model(n_user=n_user,
@@ -173,7 +179,8 @@ else:
 					n_item = n_item).to(device)
 	load_model_s(model_s, './pretrain-1m/')
 	MAE_s, RMSE_s, ndcg_sum_s, num_s = test(model_s, test_set_supp, supp_or_que='supp')
-	NDCG_s = ndcg_sum_s / num_s
+	# NDCG_s = ndcg_sum_s / num_s
+	NDCG_s = ndcg_sum_s
 	log = 'Key Test Result: MAE: {:.4f} RMSE: {:.4f} NDCG: {:.4f}'.format(MAE_s, RMSE_s, NDCG_s)
 	print(log)
 

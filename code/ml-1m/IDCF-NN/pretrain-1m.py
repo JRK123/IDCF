@@ -92,7 +92,7 @@ def test(model, test_x, test_y):
 	return loss_r.item(), MAE, RMSE
 
 def save_model(model, path):
-	torch.save(model.state_dict(), path+'core_model.pkl')
+	torch.save(model.state_dict(), path+'cur_10_support_as_core_support_model.pkl')
 
 start_time = datetime.now()
 train_size, test_size = train_set.size(0), test_set.size(0)

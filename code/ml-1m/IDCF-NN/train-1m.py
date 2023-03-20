@@ -35,7 +35,7 @@ BATCH_SIZE_TRAIN = 1024
 BATCH_SIZE_TEST = 1024
 HIS_MAXLEN = 100
 HIS_SAMPLE_NUM = 20
-n_epochs = 200 # 500
+n_epochs = 100 # 500
 
 DATASET = 'ml-1m'
 SPLIT_WAY = 'threshold'
@@ -131,12 +131,12 @@ def test(model, test_set, i):
 
 def save_model(model, path):
 	if EXTRA:
-		torch.save(model.state_dict(), path+'core_model-extra.pkl')
+		torch.save(model.state_dict(), path+'cur_10_support_as_core_support_model-extra.pkl')
 	else:
-		torch.save(model.state_dict(), path+'core_model-inter.pkl')
+		torch.save(model.state_dict(), path+'cur_10_support_as_core_support_model-inter.pkl')
 
 def load_model(model, path):
-	model.load_embedding_nn(path+'core_model.pkl')
+	model.load_embedding_nn(path+'cur_10_support_as_core_support_model.pkl')
 
 train_size, val_size, test_size = train_set.size(0), val_set.size(0), test_set.size(0)
 n_iter = n_epochs * train_size // BATCH_SIZE_TRAIN
