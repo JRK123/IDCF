@@ -25,7 +25,7 @@ def fix_seed(seed):
 #fix_seed(1234)
 
 parser = argparse.ArgumentParser(description='PMF')
-parser.add_argument('--gpus', default='0', help='gpus')
+parser.add_argument('--gpus', default='2', help='gpus')
 args = parser.parse_args()
 
 config = yaml.safe_load(open("./datainfo.yaml", 'r'))
@@ -40,8 +40,16 @@ BATCH_SIZE_TRAIN = 1024
 BATCH_SIZE_TEST = 100000
 n_epochs = 100
 
+# LEARNING_RATE = 0.005 #default 0.001
+# DECAYING_FACTOR = 0.95 #default 0.95
+# LAMBDA_REG = 0.2 #default 0.05
+# BATCH_SIZE_TRAIN = 1024
+# BATCH_SIZE_TEST = 100000
+# n_epochs = 100
+
 
 DATASET = 'ml-1m'
+# DATASET = 'amabeauty'
 SPLIT_WAY = 'threshold'
 THRESHOLD = 30
 SUPP_RATIO = 0.8
@@ -92,8 +100,7 @@ def test(model, test_x, test_y):
 	return loss_r.item(), MAE, RMSE
 
 def save_model(model, path):
-	torch.save(model.state_dict(), path+'cur_10_support_as_core_support_model.pkl')
-
+	torch.save(model.state_dict(), path+'input_for_getting_query_embeddings_support_model.pkl')
 start_time = datetime.now()
 train_size, test_size = train_set.size(0), test_set.size(0)
 n_iter = n_epochs * train_size // BATCH_SIZE_TRAIN
