@@ -20,7 +20,7 @@ def fix_seed(seed):
 fix_seed(1234)
 
 parser = argparse.ArgumentParser(description='PMF')
-parser.add_argument('--gpus', default='0', help='gpus')
+parser.add_argument('--gpus', default='2', help='gpus')
 parser.add_argument('--extra', action="store_true", help='whether extra or inter')
 args = parser.parse_args()
 
@@ -38,7 +38,17 @@ HIS_MAXLEN = 100
 HIS_SAMPLE_NUM = 20
 n_epochs = 1 # 500
 
+# LEARNING_RATE = 0.005
+# DECAYING_FACTOR = 1.
+# LAMBDA_REG = 0.05
+# BATCH_SIZE_TRAIN = 1024
+# BATCH_SIZE_TEST = 128
+# HIS_MAXLEN = 100
+# HIS_SAMPLE_NUM = 20
+# n_epochs = 1 # 500
+
 DATASET = 'ml-1m'
+# DATASET = 'amabeauty'
 SPLIT_WAY = 'threshold'
 THRESHOLD = 30
 SUPP_RATIO = 0.8
@@ -137,8 +147,8 @@ def test(model, test_set, supp_or_que):
 			else:
 				pred_y = model(test_set_i_x, test_set_his_i, test_set_hl_i)
 		y_hat, y = pred_y.cpu().numpy(), test_set_i_y.cpu().numpy()
-		l1_sum += np.sum( np.abs(y_hat - y) )
-		l2_sum += np.sum( np.square(y_hat - y) )
+		l1_sum += np.sum( np.abs(y_hat - y))
+		l2_sum += np.sum( np.square(y_hat - y))
 		for k in range(test_set_i.size(0)):
 			u, s, y = test_set_i_x[k, 0].item(), pred_y[k].item(), test_set_i_y[k].item()
 			user_score_dict[u] += [s]
@@ -155,14 +165,14 @@ def test(model, test_set, supp_or_que):
 	return MAE, RMSE, ndcg_sum, num
 
 def load_model_s(model, path):
-	model.load_model(path+'cur_10_support_as_core_support_model.pkl')
+	model.load_model(path+'input_for_getting_query_embeddings_support_model.pkl')
 
 def load_model_q(model, path):
 	if EXTRA:
-		model.load_model(path + 'cur_10_support_as_core_support_model-extra.pkl')
+		model.load_model(path + 'input_for_getting_query_embeddings_support_model-extra.pkl')
 	else:
 		print("CORE IS SELECTED:")
-		model.load_model(path+'cur_10_support_as_core_support_model-inter.pkl')
+		model.load_model(path+'input_for_getting_query_embeddings_support_model-inter.pkl')
 
 if EXTRA:
 	model_q = IRMC_NN_Model(n_user=n_user,
@@ -175,28 +185,74 @@ if EXTRA:
 	log = 'Que Test Result: MAE: {:.4f} RMSE: {:.4f} NDCG: {:.4f}'.format(MAE_q, RMSE_q, NDCG_q)
 	print(log)
 else:
-	model_s = NNMFModel(n_user = n_user,
-					n_item = n_item).to(device)
-	load_model_s(model_s, './pretrain-1m/')
-	MAE_s, RMSE_s, ndcg_sum_s, num_s = test(model_s, test_set_supp, supp_or_que='supp')
-	# NDCG_s = ndcg_sum_s / num_s
-	NDCG_s = ndcg_sum_s
-	log = 'Key Test Result: MAE: {:.4f} RMSE: {:.4f} NDCG: {:.4f}'.format(MAE_s, RMSE_s, NDCG_s)
-	print(log)
+	# model_s = NNMFModel(n_user = n_user,
+	# 				n_item = n_item).to(device)
+	# load_model_s(model_s, './pretrain-1m/')
+	# MAE_s, RMSE_s, ndcg_sum_s, num_s = test(model_s, test_set_supp, supp_or_que='supp')
+	# # NDCG_s = ndcg_sum_s / num_s
+	# NDCG_s = ndcg_sum_s
+	# log = 'Key Test Result: MAE: {:.4f} RMSE: {:.4f} NDCG: {:.4f}'.format(MAE_s, RMSE_s, NDCG_s)
+	# print(log)
 
 	model_q = IRMC_NN_Model(n_user = n_user,
 					n_item = n_item,
 					supp_users = supp_users,
 					device = device).to(device)
+	# print(model_q.user_embedding)
 	load_model_q(model_q, './train-1m/')
-	MAE_q, RMSE_q, ndcg_sum_q, num_q  = test(model_q, test_set_que, supp_or_que='que')
-	NDCG_q = ndcg_sum_q / num_q
-	log = 'Que Test Result: MAE: {:.4f} RMSE: {:.4f} NDCG: {:.4f}'.format(MAE_q, RMSE_q, NDCG_q)
-	print(log)
+	# print("AFTER LOADING:", model_q.user_embedding)
+	t1 = model_q.user_embedding
+	print("SIZE OF MODEL:" ,t1.size())
+	t2 = model_q.item_embedding
+	print("SIZE OF MODEL:" ,t2.size())
+	t2 = torch.transpose(t2, 0, 1)
+	mul = torch.matmul(t1, t2)
+	print(mul.size())
+	print("MATRIX IS:", mul)
+	mul = mul.cpu().numpy()
+	print("NUMPY MATRIX:", mul)
+	with open("core_users_and_non_core_users_obj.pkl", 'rb') as f:
+		core_user_list = pickle.load(f)
+		non_core_user_list = pickle.load(f)
+	print(len(core_user_list))
+	print(len(non_core_user_list))
 
-	supp_size, que_size = test_set_supp.size(0), test_set_que.size(0)
-	MAE = ( MAE_s * supp_size + MAE_q * que_size )/ (supp_size+que_size)
-	RMSE = np.sqrt( (RMSE_s**2 * supp_size + RMSE_q**2 * que_size) / (supp_size+que_size))
-	NDCG = (ndcg_sum_q + ndcg_sum_s) / (num_q + num_s)
-	log = 'All Test Result: MAE: {:.4f} RMSE: {:.4f} NDCG: {:.4f}'.format(MAE, RMSE, NDCG)
-	print(log)
+	## code to filter non core users from the matrix
+	# filter_indices = non_core_user_list
+	# m2 = np.array(mul)[filter_indices]
+	print("dimension of mul:", mul.shape)
+	print("HEKKI")
+
+# def find_ones(matrix):
+#     indices = np.argwhere(matrix == 1)
+#     return indices.tolist()
+# # ones_indices = find_ones(matrix)
+# # for index in ones_indices:
+# #     row, col = index
+# #     print(f"Row: {row}, Column: {col}")
+def tweakMatrix(matrix): 
+	with open("ml-1m_core_users_and_non_core_users_obj.pkl", 'rb') as f:
+		original_matrix = pickle.load(f)
+		unique_uids = pickle.load(f)
+		unique_mids = pickle.load(f)
+		print("MATRIX SHAPE:", matrix.shape)
+		print("ORIGINAL MATRIX SHAPE:", original_matrix.shape)
+	# tweakedMat = np.zeros((unique_uids, unique_mids))
+	for row in matrix:
+		row_indices = np.argsort(row)[-10:][::-1]
+		print("MAX VALUE ROW INDICES:", row_indices)
+		break
+tweakMatrix(mul)
+
+
+	# MAE_q, RMSE_q, ndcg_sum_q, num_q  = test(model_q, test_set_que, supp_or_que='que')
+	# NDCG_q = ndcg_sum_q / num_q
+	# log = 'Que Test Result: MAE: {:.4f} RMSE: {:.4f} NDCG: {:.4f}'.format(MAE_q, RMSE_q, NDCG_q)
+	# print(log)
+
+	# supp_size, que_size = test_set_supp.size(0), test_set_que.size(0)
+	# MAE = ( MAE_s * supp_size + MAE_q * que_size )/ (supp_size+que_size)
+	# RMSE = np.sqrt( (RMSE_s**2 * supp_size + RMSE_q**2 * que_size) / (supp_size+que_size))
+	# NDCG = (ndcg_sum_q + ndcg_sum_s) / (num_q + num_s)
+	# log = 'All Test Result: MAE: {:.4f} RMSE: {:.4f} NDCG: {:.4f}'.format(MAE, RMSE, NDCG)
+	# print(log)
